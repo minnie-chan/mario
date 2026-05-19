@@ -20,13 +20,30 @@ using namespace std;
         sf::Vector2f size = {40.f, 60.f};
 
         bool onGround = false;
+        bool jumping = false;
+        bool canSuperJump = false;
+        bool usedSuperJump = false;
 
         float gravity = 1500.f; 
         float moveSpeed = 280.f;
+
         float accel = 1800.f;
         float friction = 2000.f;
+
         float downHoldTime = 0.f;
         float dropTimer = 0.f;
+
+        float jumpForce = -550.f;
+        float superJumpForce = -700.f;
+
+        float spaceHoldTime = 0.f;
+        float superJumpHoldTime = 0.15f;
+
+        float jumptime = 0.f;
+        float superJumpWindow = 0.18f;
+
+        float superJumpDelay = 0.10f;
+        bool holdingJump = false;
     };
 
     float approach(float cur, float target, float maxDelta){
@@ -52,8 +69,25 @@ int main(){
     
     window.setFramerateLimit(120);
 
-    sf::RectangleShape rec;
-    rec.setSize(player.size);
+    sf::Texture playerTexture;
+
+    if(!playerTexture.loadFromFile("assets/player.png")){
+        cout << "Failed to load player sprite\n";
+    }
+
+    sf::Sprite playerSprite(playerTexture);
+
+    sf::Vector2u texSize = playerTexture.getSize();
+
+    playerSprite.setScale({
+        player.size.x / (float)texSize.x,
+        player.size.y / (float)texSize.y
+    });
+
+    playerSprite.setOrigin({
+        texSize.x / 2.f,
+        0.f
+    });
 
     vector<Platform> platforms;
     
@@ -79,9 +113,9 @@ int main(){
     platforms.push_back(p2);
     platforms.push_back(p3);
 
-
+    
     while(window.isOpen()){
-        float dt = clock.restart().asSeconds();
+        float dt = clock.restart().asSeconds();//this means time passed sicne last frame 
 
         
         while(window.pollEvent(ev)){
@@ -89,9 +123,36 @@ int main(){
                 window.close();
             }
             if(ev.type == sf::Event::KeyPressed && ev.key.code == sf::Keyboard::Space && player.onGround == true){
-                player.vel.y = -800.f; 
-            } 
+                player.vel.y = player.jumpForce; 
+                
+                player.jumptime = 0.f;
+                player.canSuperJump = true;
+                player.usedSuperJump = false;
+                player.holdingJump = true;
+            } // jump height/event loop 
         }
+        if(!sf::Keyboard::isKeyPressed(sf::Keyboard::Space)){
+            player.holdingJump = false;
+        }
+        if(player.canSuperJump){
+            player.jumptime += dt;
+
+            if(player.jumptime >= player.superJumpDelay &&
+                player.jumptime <= player.superJumpWindow &&
+                player.holdingJump &&
+                !player.usedSuperJump){
+
+                player.vel.y = player.superJumpForce;
+                player.usedSuperJump = true;
+                player.canSuperJump = false;
+            }
+            
+            if(player.jumptime > player.superJumpWindow){
+                player.canSuperJump = false;
+            }
+        }
+
+
         float dir = 0.f;
 
         if(sf::Keyboard::isKeyPressed(sf::Keyboard::Left)){
@@ -101,7 +162,9 @@ int main(){
         if(sf::Keyboard::isKeyPressed(sf::Keyboard::Right)){
             dir += 1.f;
         }
+
         float target = dir * player.moveSpeed;
+
         if(dir != 0.f){
             player.vel.x = approach(player.vel.x, target,
             player.accel * dt);
@@ -109,18 +172,22 @@ int main(){
             player.vel.x = approach(player.vel.x, 0.f,
             player.friction * dt);
         }
+
         if(sf::Keyboard::isKeyPressed(sf::Keyboard::Down) && player.onGround == true){
                 player.downHoldTime += dt;
             } else {
                 player.downHoldTime = 0.f;
         }
+
         if(player.downHoldTime >= 0.5f){
             player.dropTimer = 0.2f;
             player.downHoldTime = 0.f;
         }
+
         if(player.dropTimer > 0.f){
             player.dropTimer -= dt;
         }
+
         float prevX = player.pos.x;
         player.pos.x += player.vel.x *dt;
         
@@ -130,40 +197,39 @@ int main(){
 
         float prevLeft = prevX;
         float prevRight = prevX + player.size.x;
-        
 
-        
         float bottom = player.pos.y + player.size.y;
 
-
-        
         for(auto& pf: platforms){
             if(pf.type == PlatformType::Solid){
+
                 float pfLeft = pf.shape.getPosition().x;
                 float pfRight = pf.shape.getPosition().x + pf.shape.getSize().x;
                 float pfTop = pf.shape.getPosition().y;
                 float pfBottom = pf.shape.getPosition().y + pf.shape.getSize().y;
+
                 float top = player.pos.y;
 
                 if(player.vel.x > 0 && prevRight <= pfLeft &&
                     right >= pfLeft && bottom > pfTop && top < pfBottom){
+
                     player.pos.x = pfLeft - player.size.x; 
                     player.vel.x = 0;
 
-                } else if(player.vel.x < 0 && prevLeft >= pfRight && left <= pfRight
-                        && bottom > pfTop && top < pfBottom){
+                } else if(player.vel.x < 0 && prevLeft >= pfRight &&
+                        left <= pfRight && bottom > pfTop && top < pfBottom){
                         
                         player.pos.x = pfRight;
                         player.vel.x = 0;
                 }
             }
-
         }
         
         float prevY = player.pos.y;
         
         player.vel.y +=  player.gravity * dt;        
         player.pos.y += player.vel.y *dt;        
+
         left = player.pos.x;
         right = player.pos.x + player.size.x;
         
@@ -176,6 +242,7 @@ int main(){
         player.onGround = false;
 
         for(auto& pf : platforms){
+
             float pfLeft  = pf.shape.getPosition().x;
             float pfRight = pf.shape.getPosition().x + pf.shape.getSize().x;
             float pfTop   = pf.shape.getPosition().y;
@@ -183,50 +250,76 @@ int main(){
 
             if(pf.type == PlatformType::Solid){
                 
-                if(player.vel.y > 0 && prevBottom <= pfTop && bottom >= pfTop &&
-                    right > pfLeft && left < pfRight){
+                if(player.vel.y > 0 && prevBottom <= pfTop &&
+                    bottom >= pfTop && right > pfLeft && left < pfRight){
+
                     player.pos.y = pfTop - player.size.y;
                     player.vel.y = 0;
 
                     player.onGround = true;
                     bottom = player.pos.y + player.size.y;
 
-                }else if(player.vel.y < 0 && prevTop >= pfBottom && top <= pfBottom &&
-                    right > pfLeft && left < pfRight){
+                }else if(player.vel.y < 0 && prevTop >= pfBottom &&
+                    top <= pfBottom && right > pfLeft && left < pfRight){
+
                     player.pos.y = pfBottom;
                     player.vel.y = 0;
                 }  
-            } else if(pf.type == PlatformType::OneWay){
-                    float pfTop = pf.shape.getPosition().y;
+            }
+            else if(pf.type == PlatformType::OneWay){
 
-                    if(player.dropTimer <= 0.f && player.vel.y > 0 && prevBottom <= pfTop && 
-                        bottom >= pfTop && right > pfLeft && left < pfRight){
+                if(player.dropTimer <= 0.f &&
+                    player.vel.y > 0 &&
+                    prevBottom <= pfTop && 
+                    bottom >= pfTop &&
+                    right > pfLeft &&
+                    left < pfRight){
 
-                        player.pos.y = pfTop - player.size.y;
-                        player.vel.y = 0;
-                        player.onGround = true;
-                        bottom = player.pos.y + player.size.y;
-                    }
+                    player.pos.y = pfTop - player.size.y;
+                    player.vel.y = 0;
+                    player.onGround = true;
+
+                    bottom = player.pos.y + player.size.y;
                 }
+            }
         }
+
+        if(dir > 0){//spiet right
+            playerSprite.setScale({
+                abs(playerSprite.getScale().x),
+                playerSprite.getScale().y
+            });
+        } else if(dir < 0){//sprite left 
+            playerSprite.setScale({
+                -abs(playerSprite.getScale().x),
+                playerSprite.getScale().y
+            });
+        }
+
         float floorY = 480.f;
+
         bottom = player.pos.y + player.size.y;
+
         if(bottom >= floorY){
             player.pos.y = floorY - player.size.y;
             player.vel.y = 0.f;
             player.onGround = true;
         } 
 
-
-        rec.setPosition(player.pos);
+        
+        playerSprite.setPosition({player.pos.x + player.size.x / 2.f, 
+                                  player.pos.y
+        });
 
         window.clear(sf::Color::Black);
+
         for(auto& pf : platforms){
             window.draw(pf.shape);
         }
-        window.draw(rec);
-        window.display();
+
         
+        window.draw(playerSprite);
+
+        window.display();
     }
 }
-
