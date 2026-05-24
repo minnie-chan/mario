@@ -13,6 +13,11 @@ using namespace std;
         sf::RectangleShape shape;
         PlatformType type;
     };
+    struct Coin{
+        sf::Vector2f pos;
+
+        bool collected = false;
+    };
 
     struct Player{
         sf::Vector2f pos = {100.f, 100.f};
@@ -23,6 +28,7 @@ using namespace std;
         bool jumping = false;
         bool canSuperJump = false;
         bool usedSuperJump = false;
+        bool holdingJump = false;
 
         float gravity = 1500.f; 
         float moveSpeed = 280.f;
@@ -43,7 +49,7 @@ using namespace std;
         float superJumpWindow = 0.18f;
 
         float superJumpDelay = 0.10f;
-        bool holdingJump = false;
+
     };
 
     float approach(float cur, float target, float maxDelta){
@@ -63,21 +69,42 @@ using namespace std;
 
 int main(){
     sf::Clock clock;
+    int score = 0;
     sf::Event ev;
     Player player;
     sf::RenderWindow window(sf::VideoMode({960,540}), "MARIO Prototype");
-    
+    sf::View camera = window.getDefaultView();
+    camera.zoom(1.5f);
+    camera.setCenter(player.pos);
+
     window.setFramerateLimit(120);
 
     sf::Texture playerTexture;
+    sf::Texture coinTexture;
+    sf::Font font;
 
+    if(!font.loadFromFile("arial.ttf")){
+        cout << "failed to load font\n";
+    }
     if(!playerTexture.loadFromFile("assets/player.png")){
+        cout << "Failed to load player sprite\n";
+    }
+    if(!coinTexture.loadFromFile("assets/coin.png")){
         cout << "Failed to load player sprite\n";
     }
 
     sf::Sprite playerSprite(playerTexture);
+    sf::Sprite coinSprite(coinTexture);
+    
+    sf::Text scoreText;
+    scoreText.setFont(font);
+    scoreText.setCharacterSize(30);
+    scoreText.setFillColor(sf::Color::White);
 
     sf::Vector2u texSize = playerTexture.getSize();
+
+    float spriteOffsetX = 0.f;
+    float spriteOffsetY = 2.f;
 
     playerSprite.setScale({
         player.size.x / (float)texSize.x,
@@ -90,7 +117,13 @@ int main(){
     });
 
     vector<Platform> platforms;
+    vector<Coin> coins;
     
+    Coin c1;
+    c1.pos = {350.f,250.f};
+    coinSprite.setScale({0.09f,0.09f});
+    coins.push_back(c1);
+
     Platform p1;
     p1.shape.setSize({200.f, 10.f});
     p1.shape.setPosition({200.f, 450.f});
@@ -306,19 +339,56 @@ int main(){
             player.onGround = true;
         } 
 
-        
-        playerSprite.setPosition({player.pos.x + player.size.x / 2.f, 
-                                  player.pos.y
+        playerSprite.setPosition({
+            player.pos.x + player.size.x / 2.f + spriteOffsetX,
+            player.pos.y + spriteOffsetY
         });
 
-        window.clear(sf::Color::Black);
+        float cameraX = camera.getCenter().x;
+        float cameraY = 270.f;
+
+        float playerCenterX = player.pos.x + player.size.x / 2.f;
+
+        if(playerCenterX > cameraX + 80.f){
+            cameraX = playerCenterX - 80.f;
+        } else if(playerCenterX < cameraX - 80.f){
+            cameraX = playerCenterX + 80.f;
+        }
+
+        camera.setCenter({cameraX, cameraY});
+        window.setView(camera);
+
+        window.clear(sf::Color(135, 206, 235));
 
         for(auto& pf : platforms){
             window.draw(pf.shape);
         }
-
         
         window.draw(playerSprite);
+
+        for(auto& coin : coins){
+            float coinLeft = coin.pos.x;
+            float coinRight = coin.pos.x + 32.f;
+
+            float coinTop = coin.pos.y;
+            float coinBottom = coin.pos.y + 32.f;
+
+            if(!coin.collected && right > coinLeft && left < coinRight &&
+               bottom > coinTop && top < coinBottom){
+
+                coin.collected = true;
+                score++;
+            }
+            if(!coin.collected){
+                coinSprite.setPosition(coin.pos);
+                window.draw(coinSprite);
+            }
+        }
+        window.setView(window.getDefaultView());
+        
+        scoreText.setString("Coins: " + to_string(score));
+
+        window.draw(scoreText);
 
         window.display();
     }
