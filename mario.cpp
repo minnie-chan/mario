@@ -18,18 +18,45 @@ using namespace std;
 
         bool collected = false;
     };
+    struct CheckPoint{
+        sf::RectangleShape shape;
+        bool activated = false;
+    };
+    struct Hazard{
+        sf::RectangleShape shape;
+    };
+    struct Enemy{
+        sf::RectangleShape shape;
+        sf::Sprite sprite;
+
+        float speed = 100.f;
+        int direction = -1;
+        float leftBound;
+        float rightBound;
+        float animTimer = 0.f;
+        float deathTimer = 0.f;
+
+        bool alive = true;
+        bool walkFrame = false;
+        bool dying = false;
+    };
+    struct Goal{
+        sf::RectangleShape shape;
+        bool reached = false;
+    };
 
     struct Player{
         sf::Vector2f pos = {100.f, 100.f};
         sf::Vector2f vel = {0.f, 0.f};
         sf::Vector2f size = {40.f, 60.f};
+        sf::Vector2f respawnPoint = {100.f,100.f};
 
         bool onGround = false;
         bool jumping = false;
         bool canSuperJump = false;
         bool usedSuperJump = false;
         bool holdingJump = false;
-
+        
         float gravity = 1500.f; 
         float moveSpeed = 280.f;
 
@@ -50,6 +77,7 @@ using namespace std;
 
         float superJumpDelay = 0.10f;
 
+
     };
 
     float approach(float cur, float target, float maxDelta){
@@ -66,10 +94,19 @@ using namespace std;
         }
         return cur;
     }
+    sf::FloatRect getPlayerBounds(Player& player){
+        return sf::FloatRect(
+            player.pos.x,
+            player.pos.y,
+            player.size.x,
+            player.size.y
+        );
+    }
+
 
 int main(){
     sf::Clock clock;
-    int score = 0;
+    
     sf::Event ev;
     Player player;
     sf::RenderWindow window(sf::VideoMode({960,540}), "MARIO Prototype");
@@ -78,10 +115,16 @@ int main(){
     camera.setCenter(player.pos);
 
     window.setFramerateLimit(120);
+    int score = 0;
+    int scores = 0;
+    bool levelComplete = false;
+
 
     sf::Texture playerTexture;
     sf::Texture coinTexture;
     sf::Font font;
+    sf::Texture go;
+    sf::Texture goombaTexture;
 
     if(!font.loadFromFile("arial.ttf")){
         cout << "failed to load font\n";
@@ -92,10 +135,40 @@ int main(){
     if(!coinTexture.loadFromFile("assets/coin.png")){
         cout << "Failed to load player sprite\n";
     }
+    if(!goombaTexture.loadFromFile("assets/goon.png")){
+        cout << "failed to load player sprite\n";
+    }
 
     sf::Sprite playerSprite(playerTexture);
     sf::Sprite coinSprite(coinTexture);
+    sf::Sprite ene(go);
+    sf::Sprite goom(goombaTexture);
     
+    playerSprite.setScale({2.5f,2.5f});
+
+    sf::IntRect frame0({0,7}, {18,18});
+    sf::IntRect frame1({19,7}, {18,18});
+    sf::IntRect frame2({37,7}, {18,18});
+    sf::IntRect frame3({55,7}, {18,18});
+    sf::IntRect jumpFrame({95,7}, {18,18});
+    sf::IntRect takeoffFrame({75,7}, {18,18});
+
+    goom.setScale({4.f,4.f});
+
+    sf::IntRect frame_1({7,39}, {17,17});
+    sf::IntRect frame_2({39,39},{17,17});
+    sf::IntRect frame_3({7,63},{17,12});
+
+    float animTimer = 0.f;
+    float animSpeed = 0.15f;
+    int currentFrame = 0;
+    float airTime = 0.f;
+
+    sf::Text a;
+    a.setFont(font);
+    a.setCharacterSize(30);
+    a.setFillColor(sf::Color::Black);
+
     sf::Text scoreText;
     scoreText.setFont(font);
     scoreText.setCharacterSize(30);
@@ -106,19 +179,33 @@ int main(){
     float spriteOffsetX = 0.f;
     float spriteOffsetY = 2.f;
 
+    /*ene.setScale({
+        40.f / (float)go.getSize().x,
+        40.f / (float)go.getSize().y
+    });
     playerSprite.setScale({
         player.size.x / (float)texSize.x,
         player.size.y / (float)texSize.y
-    });
+    });*/
 
-    playerSprite.setOrigin({
+    /*playerSprite.setOrigin({
         texSize.x / 2.f,
         0.f
-    });
+    });*/
 
     vector<Platform> platforms;
     vector<Coin> coins;
-    
+    vector<Hazard> haz;
+    vector<CheckPoint> check;
+    vector<Enemy> evil;
+    vector<Goal> goals;
+
+    Goal flag;
+    flag.shape.setSize({40.f,120.f});
+    flag.shape.setPosition({900.f,460.f});
+    flag.shape.setFillColor(sf::Color::White);
+    goals.push_back(flag);
+
     Coin c1;
     c1.pos = {350.f,250.f};
     coinSprite.setScale({0.09f,0.09f});
@@ -142,6 +229,36 @@ int main(){
     p3.shape.setFillColor(sf::Color::Green);
     p3.type = PlatformType::Solid;
 
+    Platform ground;
+    ground.shape.setSize({4000.f,80.f});
+    ground.shape.setPosition({-200.f,580.f});
+    ground.shape.setFillColor(sf::Color(100,200,100));
+    ground.type = PlatformType::Solid;
+
+    Hazard bad;
+    bad.shape.setSize({50.f,50.f});
+    bad.shape.setPosition({350.f,400.f});
+    bad.shape.setFillColor({sf::Color::Red});
+
+    CheckPoint ch;
+    ch.shape.setSize({100.f,50.f});
+    ch.shape.setPosition({600.f,500.f});
+    ch.shape.setFillColor(sf::Color::Yellow);
+
+    Enemy e;
+    e.shape.setSize({40.f,40.f});
+    e.shape.setPosition({500.f,540.f});
+    
+    e.sprite.setScale({2.f, 2.f});
+    e.sprite.setPosition(e.shape.getPosition());
+    e.sprite.setTexture(goombaTexture);
+    e.leftBound = 400.f;
+    e.rightBound = 700.f;
+    evil.push_back(e);
+    
+    check.push_back(ch);
+    haz.push_back(bad);
+    platforms.push_back(ground);
     platforms.push_back(p1);
     platforms.push_back(p2);
     platforms.push_back(p3);
@@ -316,6 +433,23 @@ int main(){
                 }
             }
         }
+        for(auto& hz : haz){
+            sf::FloatRect playerBounds = getPlayerBounds(player);
+            if(playerBounds.intersects(hz.shape.getGlobalBounds())){
+                player.pos = player.respawnPoint;
+                player.vel = {0.f,0.f};
+            }
+        }
+        for(auto& ch : check){
+            sf::FloatRect playerBounds = getPlayerBounds(player);
+            if(!ch.activated && playerBounds.intersects(ch.shape.getGlobalBounds())){
+                player.respawnPoint = ch.shape.getPosition();
+                ch.activated = true;
+                ch.shape.setFillColor(sf::Color::Green);
+                scores += 500;
+            }
+        }
+
 
         if(dir > 0){//spiet right
             playerSprite.setScale({
@@ -329,7 +463,43 @@ int main(){
             });
         }
 
-        float floorY = 480.f;
+        if(!player.onGround){
+            airTime += dt;
+
+            if(airTime < 0.1f){
+                playerSprite.setTextureRect(takeoffFrame);
+            } else {
+                playerSprite.setTextureRect(jumpFrame);
+            } 
+        }else if(dir != 0.f){
+            animTimer += dt;
+            airTime = 0.f;
+
+            if(animTimer >= animSpeed){
+                animTimer = 0.f;
+                currentFrame++;
+
+                if(currentFrame > 3){
+                    currentFrame = 0;
+                }
+            }
+            if(currentFrame == 0){
+                playerSprite.setTextureRect(frame1);
+            } else if(currentFrame == 1){
+                playerSprite.setTextureRect(frame2);
+            } else if(currentFrame == 2){
+                playerSprite.setTextureRect(frame3);
+            } else if(currentFrame == 3){
+                playerSprite.setTextureRect(frame2);
+            }
+        } else {
+            airTime = 0.f;
+            playerSprite.setTextureRect(frame0);
+            animTimer = 0.f;
+            currentFrame = 0;
+        }
+
+        float floorY = 580.f;
 
         bottom = player.pos.y + player.size.y;
 
@@ -338,6 +508,68 @@ int main(){
             player.vel.y = 0.f;
             player.onGround = true;
         } 
+        for(auto& e : evil){
+            if(e.alive){
+                e.shape.move({e.speed * e.direction * dt, 0.f});
+
+                if(e.shape.getPosition().x <= e.leftBound){
+                    e.direction = 1;
+                }
+
+                if(e.shape.getPosition().x >= e.rightBound){
+                    e.direction = -1;
+                }
+                e.animTimer += dt;
+
+                if(e.animTimer >= 0.2f){
+                    e.animTimer = 0.f;
+                    e.walkFrame = !e.walkFrame;
+                }
+
+                if(e.walkFrame){
+                    e.sprite.setTextureRect(frame_1);
+                } else{
+                    e.sprite.setTextureRect(frame_2);
+                }
+                e.sprite.setPosition(e.shape.getPosition());
+                
+                sf::FloatRect playerBounds = getPlayerBounds(player);
+
+                if(playerBounds.intersects(e.shape.getGlobalBounds())){
+                    float enemyTop = e.shape.getPosition().y;
+
+                    if(bottom <= enemyTop + 15.f && player.vel.y > 0){
+                        e.alive = false;
+                        e.dying = true;
+                        e.deathTimer = 0.f;
+                        scores += 300;
+                        e.sprite.setTextureRect(frame_3);
+                        player.vel.y = -800.f;
+                    }else{
+                        player.pos = player.respawnPoint;
+                        player.vel = {0.f, 0.f};
+                    }
+                }
+            } else if(e.dying){
+                e.deathTimer += dt;
+
+                if(e.deathTimer >= 0.5f){
+                    e.dying = false;
+                }
+            }
+        }
+
+        for(auto& g : goals){
+            sf::FloatRect p = getPlayerBounds(player);
+            if(!g.reached && p.intersects(g.shape.getGlobalBounds())){
+                g.reached = true;
+                levelComplete = true;
+                scores += 1000;
+                g.shape.setFillColor(sf::Color::Green);
+            }
+
+        }
+
 
         playerSprite.setPosition({
             player.pos.x + player.size.x / 2.f + spriteOffsetX,
@@ -363,6 +595,20 @@ int main(){
         for(auto& pf : platforms){
             window.draw(pf.shape);
         }
+        for(auto& hz : haz){
+            window.draw(hz.shape);
+        }
+        for(auto& ch: check){
+            window.draw(ch.shape);
+        }
+        for(auto& e : evil){
+            if(e.alive || e.dying){
+                window.draw(e.sprite);
+            }
+        }
+        for(auto& g: goals){
+            window.draw(g.shape);
+        }
         
         window.draw(playerSprite);
 
@@ -378,6 +624,7 @@ int main(){
 
                 coin.collected = true;
                 score++;
+                scores += 100;
             }
             if(!coin.collected){
                 coinSprite.setPosition(coin.pos);
@@ -385,6 +632,24 @@ int main(){
             }
         }
         window.setView(window.getDefaultView());
+
+        sf::Text winText;
+        winText.setFont(font);
+        winText.setString("LEVEL COMPLETE!");
+        winText.setCharacterSize(40);
+        winText.setFillColor(sf::Color::White);
+        winText.setPosition({300.f, 220.f});
+        sf::RectangleShape winBox;
+        winBox.setSize({400.f, 200.f});
+        winBox.setPosition({280.f, 170.f});
+        winBox.setFillColor(sf::Color(0, 0, 0, 200));
+        if(levelComplete){
+            window.draw(winBox);
+            window.draw(winText);    
+        }
+        a.setString("Score: " + to_string(scores));
+        a.setPosition({10.f,40.f});
+        window.draw(a);
         
         scoreText.setString("Coins: " + to_string(score));
 
