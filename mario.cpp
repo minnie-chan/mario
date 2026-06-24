@@ -12,15 +12,23 @@ using namespace std;
     struct Platform{
         sf::RectangleShape shape;
         PlatformType type;
+
+        bool isQuestionBlock = false;
+        bool used = false;
+    };
+    struct PopupCoin{
+        sf::Vector2f pos;
+        float timer = 0.f;
+        bool acitve = true;
+    };
+    struct QuestionBlock{
+        sf::RectangleShape shape;
+        bool used = false;
     };
     struct Coin{
         sf::Vector2f pos;
 
         bool collected = false;
-    };
-    struct CheckPoint{
-        sf::RectangleShape shape;
-        bool activated = false;
     };
     struct Hazard{
         sf::RectangleShape shape;
@@ -28,6 +36,8 @@ using namespace std;
     struct Enemy{
         sf::RectangleShape shape;
         sf::Sprite sprite;
+
+        sf::Vector2f spawnPoint;
 
         float speed = 100.f;
         int direction = -1;
@@ -48,7 +58,7 @@ using namespace std;
     struct Player{
         sf::Vector2f pos = {100.f, 100.f};
         sf::Vector2f vel = {0.f, 0.f};
-        sf::Vector2f size = {40.f, 60.f};
+        sf::Vector2f size = {38.f, 45.f};
         sf::Vector2f respawnPoint = {100.f,100.f};
 
         bool onGround = false;
@@ -66,8 +76,8 @@ using namespace std;
         float downHoldTime = 0.f;
         float dropTimer = 0.f;
 
-        float jumpForce = -550.f;
-        float superJumpForce = -700.f;
+        float jumpForce = -650.f;
+        float superJumpForce = -800.f;
 
         float spaceHoldTime = 0.f;
         float superJumpHoldTime = 0.15f;
@@ -103,7 +113,6 @@ using namespace std;
         );
     }
 
-
 int main(){
     sf::Clock clock;
     
@@ -118,13 +127,14 @@ int main(){
     int score = 0;
     int scores = 0;
     bool levelComplete = false;
-
+    bool gameOver = false;
 
     sf::Texture playerTexture;
     sf::Texture coinTexture;
     sf::Font font;
     sf::Texture go;
     sf::Texture goombaTexture;
+    sf::Texture bgTexture;
 
     if(!font.loadFromFile("arial.ttf")){
         cout << "failed to load font\n";
@@ -138,13 +148,20 @@ int main(){
     if(!goombaTexture.loadFromFile("assets/goon.png")){
         cout << "failed to load player sprite\n";
     }
+    if(!bgTexture.loadFromFile("assets/level.png")){
+        cout << "failed to load player sprite\n";
+    }
 
     sf::Sprite playerSprite(playerTexture);
     sf::Sprite coinSprite(coinTexture);
     sf::Sprite ene(go);
     sf::Sprite goom(goombaTexture);
-    
-    playerSprite.setScale({2.5f,2.5f});
+    sf::Sprite levelSprite(bgTexture);
+
+    float sX = 2.3f;
+    float sY = 3.4f;
+    levelSprite.setPosition({-240.f,-10.f});
+    levelSprite.setScale({sX,sY});
 
     sf::IntRect frame0({0,7}, {18,18});
     sf::IntRect frame1({19,7}, {18,18});
@@ -163,6 +180,13 @@ int main(){
     float animSpeed = 0.15f;
     int currentFrame = 0;
     float airTime = 0.f;
+    int lives = 3;
+    int nextLifeScore = 3000;
+
+    sf::Text livesText;
+    livesText.setFont(font);
+    livesText.setCharacterSize(30);
+    livesText.setFillColor(sf::Color::Black);
 
     sf::Text a;
     a.setFont(font);
@@ -176,29 +200,70 @@ int main(){
 
     sf::Vector2u texSize = playerTexture.getSize();
 
-    float spriteOffsetX = 0.f;
-    float spriteOffsetY = 2.f;
 
     /*ene.setScale({
         40.f / (float)go.getSize().x,
         40.f / (float)go.getSize().y
-    });
-    playerSprite.setScale({
-        player.size.x / (float)texSize.x,
-        player.size.y / (float)texSize.y
     });*/
+    playerSprite.setScale({2.5f,2.5f});
 
-    /*playerSprite.setOrigin({
-        texSize.x / 2.f,
-        0.f
-    });*/
+    playerSprite.setOrigin({9.0f,0.0f});
+    bool questionBlockUsed = false;
 
     vector<Platform> platforms;
     vector<Coin> coins;
     vector<Hazard> haz;
-    vector<CheckPoint> check;
     vector<Enemy> evil;
     vector<Goal> goals;
+    vector<PopupCoin> ppc;
+
+    Platform Q;
+    Q.shape.setSize({39.f, 50.f});
+    Q.shape.setPosition({345.f,480.f});
+    Q.shape.setFillColor(sf::Color::Transparent);
+    Q.type = PlatformType::Solid;
+    Q.isQuestionBlock = true;
+
+    Platform QB;
+    QB.shape.setSize({39.f, 50.f});
+    QB.shape.setPosition({530.f,480.f});
+    QB.shape.setFillColor(sf::Color::Transparent);
+    QB.type = PlatformType::Solid;
+    QB.isQuestionBlock = true;
+
+    Platform QBB;
+    QBB.shape.setSize({39.f, 50.f});
+    QBB.shape.setPosition({605.f,480.f});
+    QBB.shape.setFillColor(sf::Color::Transparent);
+    QBB.type = PlatformType::Solid;
+    QBB.isQuestionBlock = true;
+
+    Platform QBBB;
+    QBBB.shape.setSize({39.f, 50.f});
+    QBBB.shape.setPosition({570.f,263.f});
+    QBBB.shape.setFillColor(sf::Color::Transparent);
+    QBBB.type = PlatformType::Solid;
+    QBBB.isQuestionBlock = true;
+
+    platforms.push_back(Q);
+    platforms.push_back(QB);
+    platforms.push_back(QBB);
+    platforms.push_back(QBBB);
+
+    Platform block;
+    block.shape.setSize({39.f, 50.f});
+    block.shape.setPosition({495.f,480.f});
+    block.shape.setFillColor(sf::Color::Transparent);
+    block.type = PlatformType::Solid;
+
+    Platform bloc;
+    bloc.shape.setSize({39.f, 50.f});
+    bloc.shape.setPosition({640.f,480.f});
+    bloc.shape.setFillColor(sf::Color::Transparent);
+    bloc.type = PlatformType::Solid;    
+
+    platforms.push_back(bloc);
+    platforms.push_back(block);
 
     Goal flag;
     flag.shape.setSize({40.f,120.f});
@@ -211,63 +276,97 @@ int main(){
     coinSprite.setScale({0.09f,0.09f});
     coins.push_back(c1);
 
-    Platform p1;
-    p1.shape.setSize({200.f, 10.f});
-    p1.shape.setPosition({200.f, 450.f});
-    p1.shape.setFillColor(sf::Color::Green);
-    p1.type = PlatformType::Solid;
+    /*Platform pipe;
+    pipe.shape.setSize({200.f,200.f});
+    pipe.shape.setPosition({1000.f,300.f});
+    pipe.shape.setFillColor(sf::Color::Green);
+    pipe.type = PlatformType::Solid;
+    platforms.push_back(pipe);
+    */
 
-    Platform p2;
-    p2.shape.setSize({200.f, 10.f});
-    p2.shape.setPosition({400.f, 300.f});
-    p2.shape.setFillColor(sf::Color::Green);
-    p2.type = PlatformType::OneWay;
-
-    Platform p3;
-    p3.shape.setSize({200.f, 10.f});
-    p3.shape.setPosition({600.f, 200.f});
-    p3.shape.setFillColor(sf::Color::Green);
-    p3.type = PlatformType::Solid;
-
+    float levelEndX = 7055.f; // adjust to flag/castle area
+    float levelWidth =  bgTexture.getSize().x * sX;
+    float groundY = 697;
     Platform ground;
-    ground.shape.setSize({4000.f,80.f});
-    ground.shape.setPosition({-200.f,580.f});
-    ground.shape.setFillColor(sf::Color(100,200,100));
-    ground.type = PlatformType::Solid;
 
+    for(float x = 0; x < levelWidth; x += 64){
+        /*if(x >= 900.f && x < 1100.f){
+            continue;
+        }*/
+
+        ground.shape.setSize({64.f,64.f});
+        ground.shape.setFillColor(sf::Color::Transparent);
+        ground.shape.setPosition({x,groundY});
+        ground.type = PlatformType::Solid;
+
+        platforms.push_back(ground);
+    }
+    
     Hazard bad;
     bad.shape.setSize({50.f,50.f});
     bad.shape.setPosition({350.f,400.f});
     bad.shape.setFillColor({sf::Color::Red});
 
-    CheckPoint ch;
-    ch.shape.setSize({100.f,50.f});
-    ch.shape.setPosition({600.f,500.f});
-    ch.shape.setFillColor(sf::Color::Yellow);
+    haz.push_back(bad);
 
     Enemy e;
     e.shape.setSize({40.f,40.f});
-    e.shape.setPosition({500.f,540.f});
-    
+    e.shape.setPosition({300.f,660.f});
     e.sprite.setScale({2.f, 2.f});
     e.sprite.setPosition(e.shape.getPosition());
     e.sprite.setTexture(goombaTexture);
+    e.spawnPoint = e.shape.getPosition();
     e.leftBound = 400.f;
     e.rightBound = 700.f;
+
+    Enemy ee;
+    ee.shape.setSize({40.f,40.f});
+    ee.shape.setPosition({550.f,445.f});
+    ee.sprite.setScale({2.f, 2.f});
+    ee.sprite.setPosition(e.shape.getPosition());
+    ee.sprite.setTexture(goombaTexture);
+    ee.spawnPoint = e.shape.getPosition();
+    ee.leftBound = 500.f;
+    ee.rightBound = 650.f;
+
+    Enemy eee;
+    eee.shape.setSize({40.f,40.f});
+    eee.shape.setPosition({300.f,660.f});
+    eee.sprite.setScale({2.f, 2.f});
+    eee.sprite.setPosition(e.shape.getPosition());
+    eee.sprite.setTexture(goombaTexture);
+    eee.spawnPoint = e.shape.getPosition();
+    eee.leftBound = 871.f;
+    eee.rightBound = 970.5f;
+
+    Enemy eeee;
+    eeee.shape.setSize({40.f,40.f});
+    eeee.shape.setPosition({300.f,660.f});
+    eeee.sprite.setScale({2.f, 2.f});
+    eeee.sprite.setPosition(e.shape.getPosition());
+    eeee.sprite.setTexture(goombaTexture);
+    eeee.spawnPoint = e.shape.getPosition();
+    eeee.leftBound = 999.f;
+    eeee.rightBound = 1122.f;
+
     evil.push_back(e);
-    
-    check.push_back(ch);
-    haz.push_back(bad);
-    platforms.push_back(ground);
-    platforms.push_back(p1);
-    platforms.push_back(p2);
-    platforms.push_back(p3);
+    evil.push_back(ee);
+    evil.push_back(eee);
+    evil.push_back(eeee);
+
+    player.pos = {100.f, 400.f};
+    sf::Vector2f playerStartPos = player.pos;
 
     
     while(window.isOpen()){
+        //update loop
         float dt = clock.restart().asSeconds();//this means time passed sicne last frame 
-
-        
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Y)){
+            cout << "Mario X: " << player.pos.x
+                << " Mario Y: " << player.pos.y
+                << '\n';
+        }
+        //Event
         while(window.pollEvent(ev)){
             if(ev.type == sf::Event::Closed){
                 window.close();
@@ -279,8 +378,48 @@ int main(){
                 player.canSuperJump = true;
                 player.usedSuperJump = false;
                 player.holdingJump = true;
-            } // jump height/event loop 
+            }
+            if(gameOver && ev.type == sf::Event::KeyPressed){
+                if(ev.key.code == sf::Keyboard::R){
+                    gameOver = false;
+                    levelComplete = false;
+
+                    lives = 3;
+                    score = 0;
+                    scores = 0;
+
+                    player.pos = playerStartPos;
+                    player.respawnPoint = playerStartPos;
+                    player.vel = {0.f,0.f};
+                    
+                    for(auto& c : coins){
+                        c.collected = false;
+                    }
+
+                    for(auto& e : evil){
+                        e.alive = true;
+                        e.dying = false;
+                        e.deathTimer = 0.f;
+                        e.direction = 1;
+
+                        e.shape.setPosition(e.spawnPoint);
+                        e.sprite.setPosition(e.spawnPoint);
+                    }
+                    for(auto& b: platforms){
+                        if(b.isQuestionBlock){
+                            b.used = false;
+                        }
+                    }
+                }
+                if(ev.key.code == sf::Keyboard::Escape){
+                    window.close();
+                }
+            } 
+            // jump height/event loop 
         }
+        //Reset State
+        player.onGround = false;
+        //input/movement
         if(!sf::Keyboard::isKeyPressed(sf::Keyboard::Space)){
             player.holdingJump = false;
         }
@@ -340,8 +479,15 @@ int main(){
 
         float prevX = player.pos.x;
         player.pos.x += player.vel.x *dt;
-        
 
+        if (player.pos.x + player.size.x > levelEndX){
+            player.pos.x = levelEndX - player.size.x;
+            player.vel.x = 0.f;
+        }
+        if (player.pos.x < 0.f){
+            player.pos.x = 0.f;
+            player.vel.x = 0.f;
+        }
         float left = player.pos.x;
         float right = player.pos.x + player.size.x;
 
@@ -349,7 +495,8 @@ int main(){
         float prevRight = prevX + player.size.x;
 
         float bottom = player.pos.y + player.size.y;
-
+        
+        // Collision
         for(auto& pf: platforms){
             if(pf.type == PlatformType::Solid){
 
@@ -411,7 +558,30 @@ int main(){
 
                 }else if(player.vel.y < 0 && prevTop >= pfBottom &&
                     top <= pfBottom && right > pfLeft && left < pfRight){
+                            sf::FloatRect headSensor(
+                                player.pos.x + 10.f,
+                                player.pos.y,
+                                player.size.x - 20.f,
+                                8.f
+                            );
+                        if(pf.isQuestionBlock && !pf.used && headSensor.intersects(pf.shape.getGlobalBounds())){
+                            pf.used = true;
 
+                            PopupCoin pc;
+                            pc.pos = {
+                                pf.shape.getPosition().x,
+                                pf.shape.getPosition().y - 50.f
+                            };
+
+                            ppc.push_back(pc);
+                            
+                            pf.shape.setFillColor(sf::Color::Blue);
+
+                            score++;
+                            scores += 100;
+
+                            cout << "Coin!\n";
+                        }
                     player.pos.y = pfBottom;
                     player.vel.y = 0;
                 }  
@@ -433,24 +603,25 @@ int main(){
                 }
             }
         }
+        // GAme Rules
+
+        if(player.pos.y > 900.f){
+            player.pos = player.respawnPoint;
+            player.vel = {0.f,0.f};
+            lives--;
+        }
+        if(scores >= nextLifeScore){
+            lives++;
+            nextLifeScore += 3000;
+        }
         for(auto& hz : haz){
             sf::FloatRect playerBounds = getPlayerBounds(player);
             if(playerBounds.intersects(hz.shape.getGlobalBounds())){
                 player.pos = player.respawnPoint;
                 player.vel = {0.f,0.f};
+                lives--;
             }
         }
-        for(auto& ch : check){
-            sf::FloatRect playerBounds = getPlayerBounds(player);
-            if(!ch.activated && playerBounds.intersects(ch.shape.getGlobalBounds())){
-                player.respawnPoint = ch.shape.getPosition();
-                ch.activated = true;
-                ch.shape.setFillColor(sf::Color::Green);
-                scores += 500;
-            }
-        }
-
-
         if(dir > 0){//spiet right
             playerSprite.setScale({
                 abs(playerSprite.getScale().x),
@@ -463,6 +634,7 @@ int main(){
             });
         }
 
+        //animition
         if(!player.onGround){
             airTime += dt;
 
@@ -499,15 +671,20 @@ int main(){
             currentFrame = 0;
         }
 
-        float floorY = 580.f;
+        for(auto& pc : ppc){
+            if(pc.acitve)
+            {
+                pc.pos.y -= 100.f * dt;
 
-        bottom = player.pos.y + player.size.y;
+                pc.timer += dt;
 
-        if(bottom >= floorY){
-            player.pos.y = floorY - player.size.y;
-            player.vel.y = 0.f;
-            player.onGround = true;
-        } 
+                if(pc.timer > 0.5f)
+                {
+                    pc.acitve = false;
+                }
+            }
+        }
+
         for(auto& e : evil){
             if(e.alive){
                 e.shape.move({e.speed * e.direction * dt, 0.f});
@@ -548,6 +725,7 @@ int main(){
                     }else{
                         player.pos = player.respawnPoint;
                         player.vel = {0.f, 0.f};
+                        lives--;
                     }
                 }
             } else if(e.dying){
@@ -569,37 +747,38 @@ int main(){
             }
 
         }
-
-
-        playerSprite.setPosition({
-            player.pos.x + player.size.x / 2.f + spriteOffsetX,
-            player.pos.y + spriteOffsetY
-        });
-
+        
+        // camera/HUD
         float cameraX = camera.getCenter().x;
-        float cameraY = 270.f;
+        float cameraY = 400.f;
 
         float playerCenterX = player.pos.x + player.size.x / 2.f;
 
         if(playerCenterX > cameraX + 80.f){
             cameraX = playerCenterX - 80.f;
-        } else if(playerCenterX < cameraX - 80.f){
+        } 
+        else if(playerCenterX < cameraX - 80.f){
             cameraX = playerCenterX + 80.f;
         }
 
+        float halfScreen = window.getSize().x / 2.f;
+
+        if(cameraX < halfScreen){
+            cameraX = halfScreen;
+        }
+        if(cameraX > levelWidth - halfScreen){
+            cameraX = levelWidth - halfScreen;
+        }        
+            window.clear(sf::Color(135, 206, 235));
         camera.setCenter({cameraX, cameraY});
         window.setView(camera);
-
-        window.clear(sf::Color(135, 206, 235));
-
+        window.draw(levelSprite);
+        // Draw
         for(auto& pf : platforms){
             window.draw(pf.shape);
         }
         for(auto& hz : haz){
             window.draw(hz.shape);
-        }
-        for(auto& ch: check){
-            window.draw(ch.shape);
         }
         for(auto& e : evil){
             if(e.alive || e.dying){
@@ -609,7 +788,17 @@ int main(){
         for(auto& g: goals){
             window.draw(g.shape);
         }
-        
+        for(auto& pc : ppc){
+            if(pc.acitve)
+            {
+                coinSprite.setPosition(pc.pos);
+                window.draw(coinSprite);
+            }
+        }
+        playerSprite.setPosition({
+            player.pos.x + player.size.x / 2.5f,
+            player.pos.y
+        });
         window.draw(playerSprite);
 
         for(auto& coin : coins){
@@ -647,13 +836,38 @@ int main(){
             window.draw(winBox);
             window.draw(winText);    
         }
+        sf::Text loseText;
+        loseText.setFont(font);
+        loseText.setString("!GAME OVER");
+        loseText.setCharacterSize(40);
+        loseText.setFillColor(sf::Color::White);
+        loseText.setPosition({350.f,160.f});
+        sf::RectangleShape gameoverbox;
+        gameoverbox.setSize({400.f, 200.f});
+        gameoverbox.setPosition({280.f, 170.f});
+        gameoverbox.setFillColor(sf::Color::Black);
+        if(lives == -1){
+            gameOver = true;
+            if(gameOver){
+                window.draw(gameoverbox);
+                window.draw(loseText);
+                
+            }
+        }
+        /*if (sf::Keyboard::isKeyPressed(sf::Keyboard::E)){
+            std::cout << "Mario X: " << player.pos.x << '\n';
+        }*/
+        livesText.setString("Lives: " + to_string(lives));
+        livesText.setPosition({5.f,70.f});
         a.setString("Score: " + to_string(scores));
-        a.setPosition({10.f,40.f});
+        a.setPosition({5.f,40.f});
         window.draw(a);
+        window.draw(livesText);
         
         scoreText.setString("Coins: " + to_string(score));
 
         window.draw(scoreText);
+        
 
         window.display();
     }
