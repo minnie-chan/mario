@@ -217,6 +217,14 @@ int main(){
     vector<Goal> goals;
     vector<PopupCoin> ppc;
 
+    Platform secblok;
+    secblok.shape.setSize({39.f, 50.f});
+    secblok.shape.setPosition({2116.f,430.f});
+    secblok.shape.setFillColor(sf::Color::Transparent);
+    secblok.type = PlatformType::Solid;
+    secblok.isQuestionBlock = true;
+    platforms.push_back(secblok);
+
     Platform Q;
     Q.shape.setSize({39.f, 50.f});
     Q.shape.setPosition({345.f,480.f});
@@ -245,10 +253,82 @@ int main(){
     QBBB.type = PlatformType::Solid;
     QBBB.isQuestionBlock = true;
 
+    Platform QBBBB;
+    QBBBB.shape.setSize({39.f, 50.f});
+    QBBBB.shape.setPosition({2630.f,480.f});
+    QBBBB.shape.setFillColor(sf::Color::Transparent);
+    QBBBB.type = PlatformType::Solid;
+    QBBBB.isQuestionBlock = true;
+
+    Platform B;
+    B.shape.setSize({39.f, 50.f});
+    B.shape.setPosition({3220.f,263.f});
+    B.shape.setFillColor(sf::Color::Transparent);
+    B.type = PlatformType::Solid;
+    B.isQuestionBlock = true;
+
+    Platform BB;
+    BB.shape.setSize({39.f, 50.f});
+    BB.shape.setPosition({3770.f,263.f});
+    BB.shape.setFillColor(sf::Color::Transparent);
+    BB.type = PlatformType::Solid;
+    BB.isQuestionBlock = true;
+
+    Platform BBB;
+    BBB.shape.setSize({39.f, 50.f});
+    BBB.shape.setPosition({3773.f,263.f});
+    BBB.shape.setFillColor(sf::Color::Transparent);
+    BBB.type = PlatformType::Solid;
+    BBB.isQuestionBlock = true;
+
+    Platform BBBB;
+    BBBB.shape.setSize({39.f, 50.f});
+    BBBB.shape.setPosition({3771.f,480.f});
+    BBBB.shape.setFillColor(sf::Color::Transparent);
+    BBBB.type = PlatformType::Solid;
+    BBBB.isQuestionBlock = true;
+
+    Platform BBBBQ;
+    BBBBQ.shape.setSize({39.f, 50.f});
+    BBBBQ.shape.setPosition({3662.f,480.f});
+    BBBBQ.shape.setFillColor(sf::Color::Transparent);
+    BBBBQ.type = PlatformType::Solid;
+    BBBBQ.isQuestionBlock = true;
+
+    Platform A;
+    A.shape.setSize({39.f, 50.f});
+    A.shape.setPosition({4509.f,263.f});
+    A.shape.setFillColor(sf::Color::Transparent);
+    A.type = PlatformType::Solid;
+    A.isQuestionBlock = true;
+
+    Platform AA;
+    AA.shape.setSize({39.f, 50.f});
+    AA.shape.setPosition({4540.f,263.f});
+    AA.shape.setFillColor(sf::Color::Transparent);
+    AA.type = PlatformType::Solid;
+    AA.isQuestionBlock = true;
+
+    Platform AAA;
+    AAA.shape.setSize({39.f, 50.f});
+    AAA.shape.setPosition({3883.f,480.f});
+    AAA.shape.setFillColor(sf::Color::Transparentg);
+    AAA.type = PlatformType::Solid;
+    AAA.isQuestionBlock = true;
+
     platforms.push_back(Q);
     platforms.push_back(QB);
     platforms.push_back(QBB);
     platforms.push_back(QBBB);
+    platforms.push_back(QBBBB);
+    platforms.push_back(B);
+    platforms.push_back(BB);
+    platforms.push_back(BBB);
+    platforms.push_back(BBBB);
+    platforms.push_back(BBBBQ);
+    platforms.push_back(A);
+    platforms.push_back(AA);
+    platforms.push_back(AAA);
 
     Platform block;
     block.shape.setSize({39.f, 50.f});
@@ -260,10 +340,87 @@ int main(){
     bloc.shape.setSize({39.f, 50.f});
     bloc.shape.setPosition({640.f,480.f});
     bloc.shape.setFillColor(sf::Color::Transparent);
-    bloc.type = PlatformType::Solid;    
+    bloc.type = PlatformType::Solid; 
+    
+    Platform blo;
+    blo.shape.setSize({39.f, 50.f});
+    blo.shape.setPosition({2665.f,480.f});
+    blo.shape.setFillColor(sf::Color::Transparent);
+    blo.type = PlatformType::Solid;
 
-    platforms.push_back(bloc);
+    Platform bl;
+    bl.shape.setSize({39.f, 50.f});
+    bl.shape.setPosition({2592.f,480.f});
+    bl.shape.setFillColor(sf::Color::Transparent);
+    bl.type = PlatformType::Solid;
+
+    Platform b;
+    b.shape.setSize({295.f, 50.f});
+    b.shape.setPosition({2705.f,263.f});
+    b.shape.setFillColor(sf::Color::Transparent);
+    b.type = PlatformType::Solid;
+
+    Platform k;
+    k.shape.setSize({110.f, 50.f});
+    k.shape.setPosition({3110.f,263.f});
+    k.shape.setFillColor(sf::Color::Transparent);
+    k.type = PlatformType::Solid;
+
+    Platform kc;
+    kc.shape.setSize({39.f, 50.f});
+    kc.shape.setPosition({3220.f,480.f});
+    kc.shape.setFillColor(sf::Color::Transparent);
+    kc.type = PlatformType::Solid;
+
+    Platform kco;
+    kco.shape.setSize({74.f, 50.f});
+    kco.shape.setPosition({3440.f,480.f});
+    kco.shape.setFillColor(sf::Color::Transparent);
+    kco.type = PlatformType::Solid;
+
+    Platform kcol;
+    kcol.shape.setSize({39.f, 50.f});
+    kcol.shape.setPosition({4103.f,480.f});
+    kcol.shape.setFillColor(sf::Color::Transparent);
+    kcol.type = PlatformType::Solid;
+
+    Platform kcolb;
+    kcolb.shape.setSize({110.f, 50.f});
+    kcolb.shape.setPosition({4213.f,263.f});
+    kcolb.shape.setFillColor(sf::Color::Transparent);
+    kcolb.type = PlatformType::Solid;
+
+    Platform O;
+    O.shape.setSize({74.f, 50.f});
+    O.shape.setPosition({4508.f,480.f});
+    O.shape.setFillColor(sf::Color::Transparent);
+    O.type = PlatformType::Solid;
+
+    Platform OA;
+    OA.shape.setSize({39.f, 50.f});
+    OA.shape.setPosition({4470.f,263.f});
+    OA.shape.setFillColor(sf::Color::Transparent);
+    OA.type = PlatformType::Solid;
+
+    Platform OAA;
+    OAA.shape.setSize({39.f, 50.f});
+    OAA.shape.setPosition({4579.f,263.f});
+    OAA.shape.setFillColor(sf::Color::Transparent);
+    OAA.type = PlatformType::Solid;
+
     platforms.push_back(block);
+    platforms.push_back(bloc);
+    platforms.push_back(blo);
+    platforms.push_back(bl);
+    platforms.push_back(b);
+    platforms.push_back(k);
+    platforms.push_back(kc);
+    platforms.push_back(kco);
+    platforms.push_back(kcol);
+    platforms.push_back(kcolb);
+    platforms.push_back(O);
+    platforms.push_back(OA);
+    platforms.push_back(OAA);
 
     Goal flag;
     flag.shape.setSize({40.f,120.f});
@@ -276,13 +433,33 @@ int main(){
     coinSprite.setScale({0.09f,0.09f});
     coins.push_back(c1);
 
-    /*Platform pipe;
-    pipe.shape.setSize({200.f,200.f});
-    pipe.shape.setPosition({1000.f,300.f});
-    pipe.shape.setFillColor(sf::Color::Green);
+    Platform pipe;
+    pipe.shape.setSize({80.f,100.f});
+    pipe.shape.setPosition({790.f,590.f});
+    pipe.shape.setFillColor(sf::Color::Transparent);
     pipe.type = PlatformType::Solid;
     platforms.push_back(pipe);
-    */
+
+    Platform pipee;
+    pipee.shape.setSize({80.f,200.f});
+    pipee.shape.setPosition({1160.f,535.f});
+    pipee.shape.setFillColor(sf::Color::Transparent);
+    pipee.type = PlatformType::Solid;
+    platforms.push_back(pipee);
+
+    Platform pipeee;
+    pipee.shape.setSize({80.f,230.f});
+    pipee.shape.setPosition({1450.f,483.f});
+    pipee.shape.setFillColor(sf::Color::Transparent);
+    pipee.type = PlatformType::Solid;
+    platforms.push_back(pipee);
+
+    Platform pipeeee;
+    pipeeee.shape.setSize({80.f,230.f});
+    pipeeee.shape.setPosition({1855.f,483.f});
+    pipeeee.shape.setFillColor(sf::Color::Transparent);
+    pipeeee.type = PlatformType::Solid;
+    platforms.push_back(pipeeee);
 
     float levelEndX = 7055.f; // adjust to flag/castle area
     float levelWidth =  bgTexture.getSize().x * sX;
@@ -290,9 +467,12 @@ int main(){
     Platform ground;
 
     for(float x = 0; x < levelWidth; x += 64){
-        /*if(x >= 900.f && x < 1100.f){
+        if(x >= 2263.f && x < 2306.f){
             continue;
-        }*/
+        }
+        if(x >= 2881.f && x < 3038.f){
+            continue;
+        }
 
         ground.shape.setSize({64.f,64.f});
         ground.shape.setFillColor(sf::Color::Transparent);
@@ -302,12 +482,13 @@ int main(){
         platforms.push_back(ground);
     }
     
-    Hazard bad;
+    /*Hazard bad;
     bad.shape.setSize({50.f,50.f});
     bad.shape.setPosition({350.f,400.f});
     bad.shape.setFillColor({sf::Color::Red});
 
     haz.push_back(bad);
+    */
 
     Enemy e;
     e.shape.setSize({40.f,40.f});
@@ -354,7 +535,7 @@ int main(){
     evil.push_back(eee);
     evil.push_back(eeee);
 
-    player.pos = {100.f, 400.f};
+    player.pos = {4399.f, 652.f};
     sf::Vector2f playerStartPos = player.pos;
 
     
@@ -408,6 +589,7 @@ int main(){
                     for(auto& b: platforms){
                         if(b.isQuestionBlock){
                             b.used = false;
+                            b.shape.setFillColor(sf::Color::Transparent);
                         }
                     }
                 }
